@@ -4,6 +4,7 @@ import zio.*
 import scala.io.StdIn
 import scala.util.Try
 import scala.util.Either
+import java.io.IOException
 
 object ZIOErrorHandling extends ZIOAppDefault:
 
@@ -34,4 +35,57 @@ object ZIOErrorHandling extends ZIOAppDefault:
   val eithered: IO[Throwable, Int]       = ZIO.fromEither(Try(enterNum).toEither)
   val optioned: IO[Option[Nothing], Int] = ZIO.fromOption(Try(enterNum).toOption)
 
-  override def run = thisCanFail.map(_ * 2).debug
+  /**
+   * Errors = failures present in the ZIO type signature
+   * Defects = failures that are unrecoverable, unforeseen, NOT present in the ZIO type signature
+   * 
+   * ZIO[R, E, A] can finish with Exit[E, A]
+   *   - Success[A] containing a value
+   *   - Cause[E]
+   *     - Fail[E] containing an error
+   *     - Die(t: Throwable) which was unforeseen
+   */
+
+  val failedInt: ZIO[Any, String, Int]                  = ZIO.fail("This is a failure")
+  val failureCauseExposed: ZIO[Any, Cause[String], Int] = failedInt.sandbox
+  val failureCauseHidden: ZIO[Any, String, Int]         = failureCauseExposed.unsandbox
+
+  val foldedWithCause = failedInt
+    .foldCause(
+      {
+        case Cause.Fail(error, trace) => s"Recoverable error: $error\nTrace: $trace"
+        case Cause.Die(death, trace)  => s"The Doom: $death\nTrace: $trace"
+        case e                        => s"Unexpected error: $e"
+      },
+      i => s"You entered $i"
+    )
+
+  def callHttpEndpoint(urlString: String): ZIO[Any, Throwable, String] =
+    ZIO.scoped {
+      for
+        url     <- ZIO.attempt(new java.net.URL(urlString))
+        content <- ZIO
+                     .fromAutoCloseable(ZIO.attempt(url.openStream()))
+                     .map(_.readAllBytes())
+                     .map(new String(_))
+      yield content
+    }
+
+  case class IndexError(message: Int)
+  case class DbError(message: String)
+
+  val callApi: ZIO[Any, IndexError, String] = ZIO.succeed("result 1")
+  val dbQuery: ZIO[Any, DbError, String]    = ZIO.succeed("result 2")
+
+  val combined: ZIO[Any, IndexError | DbError, String] =
+    for
+      apiResult <- callApi
+      dbResult  <- dbQuery
+    yield s"$apiResult and $dbResult"
+
+  override def run =
+    callHttpEndpoint("http://localhost:8080").refineOrDie {
+      case ioe: IOException => ioe
+      case e                => new IOException(e)
+
+    }.debug

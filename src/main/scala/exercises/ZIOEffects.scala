@@ -2,7 +2,7 @@ package exercises
 
 import zio.*
 
-object ZIOEffectExercises:
+object ZIOEffects:
 
   def seqTaskLast[R, E, A, B](taskA: ZIO[R, E, A], taskB: ZIO[R, E, B]): ZIO[R, E, B] =
     // for {
