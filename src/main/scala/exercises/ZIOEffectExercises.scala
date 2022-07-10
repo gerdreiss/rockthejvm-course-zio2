@@ -43,23 +43,25 @@ object ZIOEffectExercises:
       //     }
       //   }
       ZIO.suspendSucceed {
-        for
-          current  <- ZIO.succeed(n)
-          previous <- sumZIO(n - 1)
-        yield current + previous
+        // for
+        //   current  <- ZIO.succeed(n)
+        //   previous <- sumZIO(n - 1)
+        // yield current + previous
+        sumZIO(n - 1).map(_ + n)
       }
 
   def fibZIO(n: Int): UIO[BigInt] =
     if n <= 2 then ZIO.succeed(1)
     else
       ZIO.suspendSucceed {
-        for
-          a <- fibZIO(n - 1)
-          b <- fibZIO(n - 2)
-        yield a + b
+        // for
+        //   a <- fibZIO(n - 1)
+        //   b <- fibZIO(n - 2)
+        // yield a + b
+        fibZIO(n - 1).zipWith(fibZIO(n - 2))(_ + _)
       }
 
   def main(args: Array[String]): Unit =
     Unsafe.unsafe {
-      Runtime.default.unsafe.run(fibZIO(100).debug("fibZIO"))
+      Runtime.default.unsafe.run(sumZIO(100000).debug("sumZIO"))
     }
