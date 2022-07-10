@@ -1,10 +1,9 @@
 package exercises
 
 import zio.*
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
+
 import java.io.IOException
+import scala.util.{ Failure, Success, Try }
 
 object ZIOErrorHandling:
 
@@ -69,11 +68,12 @@ object ZIOErrorHandling:
       }
 
   //
-  val db = Map(
-    "daniel" -> 123,
-    "alice"  -> 234,
-    "bob"    -> 345
-  )
+  val db: Map[String, RuntimeFlags] =
+    Map(
+      "daniel" -> 123,
+      "alice"  -> 234,
+      "bob"    -> 345
+    )
   case class QueryError(reason: String)
   case class UserProfile(name: String, phone: Int)
 
@@ -85,8 +85,10 @@ object ZIOErrorHandling:
   def betterLookupProfileG(userId: String): ZIO[Any, QueryError, UserProfile] =
     ZIO
       .fromOption(db.get(userId))
-      .map(UserProfile(userId, _))
-      .mapError(_ => QueryError(s"User with ID $userId not found"))
+      .mapBoth(
+        _ => QueryError(s"User with ID $userId not found"),
+        v => UserProfile(userId, v)
+      )
 
   def betterLookupProfileD(userId: String): ZIO[Any, Option[QueryError], UserProfile] =
     // lookupProfile(userId).foldZIO(

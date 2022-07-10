@@ -2,6 +2,8 @@ package exercises
 
 import zio.*
 
+import java.io.IOException
+
 object ZIOEffects:
 
   def seqTaskLast[R, E, A, B](taskA: ZIO[R, E, A], taskB: ZIO[R, E, B]): ZIO[R, E, B] =
@@ -21,9 +23,10 @@ object ZIOEffects:
   def runForever[R, E, A](task: ZIO[R, E, A]): ZIO[R, E, A] =
     task.forever
 
-  val endlessLoop = runForever {
-    Console.printLine("running...") *> ZIO.sleep(1.second)
-  }
+  val endlessLoop: ZIO[Any, IOException, Unit] =
+    runForever {
+      Console.printLine("running...") *> ZIO.sleep(1.second)
+    }
 
   def convert[R, E, A, B](zio: ZIO[R, E, A], value: B): ZIO[R, E, B] =
     zio.as(value)

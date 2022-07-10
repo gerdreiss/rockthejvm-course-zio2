@@ -1,14 +1,15 @@
 package lessons
 
 import zio.*
-import scala.io.StdIn
-import scala.util.Try
-import scala.util.Either
+
 import java.io.IOException
+import scala.io.StdIn
+import scala.util.{ Either, Try }
 
 object ZIOErrorHandling extends ZIOAppDefault:
 
-  def enterNum = StdIn.readLine("Enter a number: ").toInt
+  def enterNum: Int =
+    StdIn.readLine("Enter a number: ").toInt
 
   val thisCanFail: ZIO[Any, Throwable, Int] =
     ZIO
@@ -50,15 +51,16 @@ object ZIOErrorHandling extends ZIOAppDefault:
   val failureCauseExposed: ZIO[Any, Cause[String], Int] = failedInt.sandbox
   val failureCauseHidden: ZIO[Any, String, Int]         = failureCauseExposed.unsandbox
 
-  val foldedWithCause = failedInt
-    .foldCause(
-      {
-        case Cause.Fail(error, trace) => s"Recoverable error: $error\nTrace: $trace"
-        case Cause.Die(death, trace)  => s"The Doom: $death\nTrace: $trace"
-        case e                        => s"Unexpected error: $e"
-      },
-      i => s"You entered $i"
-    )
+  val foldedWithCause: URIO[Any, String] =
+    failedInt
+      .foldCause(
+        {
+          case Cause.Fail(error, trace) => s"Recoverable error: $error\nTrace: $trace"
+          case Cause.Die(death, trace)  => s"The Doom: $death\nTrace: $trace"
+          case e                        => s"Unexpected error: $e"
+        },
+        i => s"You entered $i"
+      )
 
   def callHttpEndpoint(urlString: String): ZIO[Any, Throwable, String] =
     ZIO.scoped {
@@ -83,7 +85,7 @@ object ZIOErrorHandling extends ZIOAppDefault:
       dbResult  <- dbQuery
     yield s"$apiResult and $dbResult"
 
-  override def run =
+  override def run: ZIO[Any, IOException, String] =
     callHttpEndpoint("http://localhost:8080").refineOrDie {
       case ioe: IOException => ioe
       case e                => new IOException(e)
