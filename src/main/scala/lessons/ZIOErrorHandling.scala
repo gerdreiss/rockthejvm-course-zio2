@@ -57,7 +57,7 @@ object ZIOErrorHandling extends ZIOAppDefault:
         {
           case Cause.Fail(error, trace) => s"Recoverable error: $error\nTrace: $trace"
           case Cause.Die(death, trace)  => s"The Doom: $death\nTrace: $trace"
-          case e                        => s"Unexpected error: $e"
+          case other                    => s"Unexpected error: $other"
         },
         i => s"You entered $i"
       )
