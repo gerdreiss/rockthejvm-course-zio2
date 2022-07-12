@@ -1,9 +1,12 @@
 package exercises
 
 import zio.*
+import zio.nio.file.Files as ZFiles
+import zio.nio.file.Path as ZPath
+import zio.stream.ZStream
 
-import java.nio.file.Files
-import java.nio.file.Paths
+import java.nio.file.Files as JFiles
+import java.nio.file.Paths as JPaths
 import java.util.stream.Collectors.toList
 import scala.jdk.CollectionConverters.*
 
@@ -18,7 +21,7 @@ object Fibers extends ZIOAppDefault:
     }
 
   // part 2 - spin up fibers for all the files
-  def parWords: Task[Int] =
+  val parWords: Task[Int] =
     // Daniel's solution using fibers
     // Files
     //   .list(Paths.get("src/main/resources/"))
@@ -33,12 +36,27 @@ object Fibers extends ZIOAppDefault:
     // my solution using ZIO's built in parallelism
     ZIO
       .foreachPar(
-        Files
-          .list(Paths.get("src/main/resources/"))
+        JFiles
+          .list(JPaths.get("src/main/resources/"))
           .map(_.toString())
           .collect(toList())
           .asScala
       )(words)
       .map(_.sum)
 
-  override def run = parWords.debug
+  val wordsFromStream: Task[Int] =
+    ZFiles
+      .list(ZPath("src/main/resources/"))
+      .flatMapPar(10) { path =>
+        ZStream
+          .acquireReleaseWith(ZIO.attempt(io.Source.fromFile(path.toFile))) { source =>
+            ZIO.attempt(source.close()).ignore
+          }
+          .flatMap { source =>
+            ZStream.fromIterator(source.getLines())
+          }
+      }
+      .map(_.split("\\W+").length)
+      .runFold(0)(_ + _)
+
+  override def run = wordsFromStream.debug
