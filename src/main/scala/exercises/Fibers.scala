@@ -1,16 +1,17 @@
 package exercises
 
 import zio.*
-import zio.nio.file.Files as ZFiles
-import zio.nio.file.Path as ZPath
+import zio.nio.file.{Files as ZFiles, Path as ZPath}
 import zio.stream.ZStream
 
-import java.nio.file.Files as JFiles
-import java.nio.file.Paths as JPaths
+import java.lang.Runtime as JRuntime
+import java.nio.file.{Files as JFiles, Paths as JPaths}
 import java.util.stream.Collectors.toList
 import scala.jdk.CollectionConverters.*
 
 object Fibers extends ZIOAppDefault:
+
+  private val RESOURCES = "src/main/resources/"
 
   // part 1 - an effect which reads one file and counts words
   def words(path: String): Task[Int] =
@@ -37,17 +38,17 @@ object Fibers extends ZIOAppDefault:
     ZIO
       .foreachPar(
         JFiles
-          .list(JPaths.get("src/main/resources/"))
+          .list(JPaths.get(RESOURCES))
           .map(_.toString())
-          .collect(toList())
+          .collect(toList)
           .asScala
       )(words)
       .map(_.sum)
 
   val wordsFromStream: Task[Int] =
     ZFiles
-      .list(ZPath("src/main/resources/"))
-      .flatMapPar(10) { path =>
+      .list(ZPath(RESOURCES))
+      .flatMapPar(JRuntime.getRuntime.availableProcessors()) { path =>
         ZStream
           .acquireReleaseWith(ZIO.attempt(io.Source.fromFile(path.toFile))) { source =>
             ZIO.attempt(source.close()).ignore
@@ -59,4 +60,5 @@ object Fibers extends ZIOAppDefault:
       .map(_.split("\\W+").length)
       .runFold(0)(_ + _)
 
-  override def run = wordsFromStream.debug
+  override def run: ZIO[Any, Throwable, Int] =
+    parWords.debug *> wordsFromStream.debug

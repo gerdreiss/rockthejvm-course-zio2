@@ -4,18 +4,18 @@ import zio.*
 
 object Fibers extends ZIOAppDefault:
 
-  val meaningOfLife = ZIO.succeed(42)
-  val favLang       = ZIO.succeed("Scala")
+  val meaningOfLife: UIO[Int] = ZIO.succeed(42)
+  val favLang: UIO[String]    = ZIO.succeed("Scala")
 
-  def createFiber: Fiber[Throwable, String] = ???
+  def createFiber: Fiber[Throwable, String] = ??? // impossible
 
-  val sameThreadIO =
+  val sameThreadIO: UIO[(Int, String)] =
     for
       mol  <- meaningOfLife.debugThread
       lang <- favLang.debugThread
     yield (mol, lang)
 
-  val fiberIO =
+  val fiberIO: UIO[(Int, String)] =
     for
       fmol  <- meaningOfLife.debugThread.fork
       flang <- favLang.debugThread.fork
