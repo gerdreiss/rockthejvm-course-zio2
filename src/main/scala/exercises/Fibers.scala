@@ -1,17 +1,18 @@
 package exercises
 
 import zio.*
-import zio.nio.file.{Files as ZFiles, Path as ZPath}
+import zio.nio.file.{ Files as ZFiles, Path as ZPath }
 import zio.stream.ZStream
 
 import java.lang.Runtime as JRuntime
-import java.nio.file.{Files as JFiles, Paths as JPaths}
+import java.nio.file.{ Files as JFiles, Paths as JPaths }
 import java.util.stream.Collectors.toList
 import scala.jdk.CollectionConverters.*
 
 object Fibers extends ZIOAppDefault:
 
-  private val RESOURCES = "src/main/resources/"
+  private val RESOURCES: String   = "src/main/resources/"
+  private val NUM_PROCESSORS: Int = JRuntime.getRuntime.availableProcessors()
 
   // part 1 - an effect which reads one file and counts words
   def words(path: String): Task[Int] =
@@ -48,7 +49,7 @@ object Fibers extends ZIOAppDefault:
   val wordsFromStream: Task[Int] =
     ZFiles
       .list(ZPath(RESOURCES))
-      .flatMapPar(JRuntime.getRuntime.availableProcessors()) { path =>
+      .flatMapPar(NUM_PROCESSORS) { path =>
         ZStream
           .acquireReleaseWith(ZIO.attempt(io.Source.fromFile(path.toFile))) { source =>
             ZIO.attempt(source.close()).ignore

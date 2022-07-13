@@ -44,7 +44,7 @@ object Fibers extends ZIOAppDefault:
   // peek at the result
   val peekFiber: UIO[Option[Exit[Nothing, Int]]] =
     for
-      fib <- (ZIO.sleep(1.second) *> meaningOfLife).fork
+      fib <- meaningOfLife.delay(1.second).fork
       a   <- fib.poll
     yield a
 
