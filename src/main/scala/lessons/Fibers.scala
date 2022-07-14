@@ -1,5 +1,6 @@
 package lessons
 
+import utils.*
 import zio.*
 
 object Fibers extends ZIOAppDefault:

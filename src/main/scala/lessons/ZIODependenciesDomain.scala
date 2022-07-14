@@ -1,5 +1,6 @@
 package lessons
 
+import utils.*
 import zio.*
 
 // app to subscribe users to newsletter
