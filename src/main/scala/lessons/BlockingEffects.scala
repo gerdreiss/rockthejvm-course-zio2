@@ -19,7 +19,7 @@ object BlockingEffects extends ZIOAppDefault:
   // blocking thread pool
   val aBlockingZIO: Task[Int] =
     ZIO.attemptBlocking {
-      println(s"[${Thread.currentThread.getName}] running a long computation...")
+      println("running a long computation...".prependThreadName)
       Thread.sleep(10000)
       42
     }
@@ -27,7 +27,7 @@ object BlockingEffects extends ZIOAppDefault:
   // can use attemptBlockingInterrupt
   val aBlockingInterruptibleZIO: Task[Int] =
     ZIO.attemptBlockingInterrupt {
-      println(s"[${Thread.currentThread.getName}] running a long computation...")
+      println("running a long computation...".prependThreadName)
       Thread.sleep(10000)
       42
     }
