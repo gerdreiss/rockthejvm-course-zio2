@@ -3,7 +3,11 @@ package lessons
 import utils.*
 import zio.*
 
+import scala.io.BufferedSource
+
 object Refs extends ZIOAppDefault:
+
+  val loremIpsumUrl = "https://loripsum.net/api/plaintext/25"
 
   val atomicMOL: UIO[Ref[Int]] = Ref.make(42)
 
@@ -24,18 +28,28 @@ object Refs extends ZIOAppDefault:
   def countWords(s: String, total: Ref[Int]): UIO[Int] =
     total.updateAndGet(_ + s.words.size).debugThread("New total: ")
 
-  val text: List[String] =
-    List(
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-      "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-      "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
-      "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-    )
+  // val text: List[String] =
+  //  List(
+  //    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+  //    "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+  //    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+  //    "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+  //  )
 
-  val totalCount: UIO[Ref[Int]] =
+  val loremIpsumText: Task[List[String]] =
+    ZIO.acquireReleaseWith {
+      ZIO.attempt(io.Source.fromURL(loremIpsumUrl))
+    } { source =>
+      ZIO.attempt(source.close()).ignore
+    } { source =>
+      ZIO.attemptBlocking(source.getLines().toList)
+    }
+
+  val totalCount: Task[(Ref[Int], List[Int])] =
     for
-      total <- Ref.make(0)
-      _     <- ZIO.foreachParDiscard(text)(countWords(_, total))
-    yield total
+      text    <- loremIpsumText
+      total   <- Ref.make(0)
+      updates <- ZIO.foreachPar(text)(countWords(_, total))
+    yield (total, updates.sorted)
 
   override def run: ZIO[Any, Any, Any] = totalCount.debugThread("Total count: ")
