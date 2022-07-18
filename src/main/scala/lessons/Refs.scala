@@ -2,6 +2,7 @@ package lessons
 
 import utils.*
 import zio.*
+import zio.stream.*
 
 import scala.io.BufferedSource
 
@@ -45,6 +46,15 @@ object Refs extends ZIOAppDefault:
       ZIO.attemptBlocking(source.getLines().toList)
     }
 
+  val loremIpsumStream: ZStream[Any, Throwable, String] =
+    ZStream.acquireReleaseWith {
+      ZIO.attempt(io.Source.fromURL(loremIpsumUrl))
+    } { source =>
+      ZIO.attempt(source.close()).ignore
+    } flatMap { source =>
+      zio.stream.ZStream.fromIterator(source.getLines())
+    }
+
   val totalCount: Task[(Ref[Int], List[Int])] =
     for
       text    <- loremIpsumText
@@ -52,4 +62,9 @@ object Refs extends ZIOAppDefault:
       updates <- ZIO.foreachPar(text)(countWords(_, total))
     yield (total, updates.sorted)
 
-  override def run: ZIO[Any, Any, Any] = totalCount.debugThread("Total count: ")
+  val totalCountStream: Task[Int] =
+    loremIpsumStream.map(_.words.size).runSum
+
+  override def run: ZIO[Any, Any, Any] =
+    totalCount.debugThread("Total count: ") *>
+      totalCountStream.debugThread("Total count from stream: ")
