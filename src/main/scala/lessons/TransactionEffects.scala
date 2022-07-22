@@ -77,6 +77,41 @@ object TransactionEffects extends ZIOAppDefault:
       .commit
       .debugThread
 
+  /**
+   * STM data structures
+   */
+
+  // atomic variable: TRef
+  val v: USTM[TRef[Int]] = TRef.make(42)
+
+  // TArray
+  val a: USTM[TArray[Int]] = TArray.make(42, 43, 44)
+  val i: USTM[TArray[Int]] = TArray.fromIterable(List(42, 43, 44))
+
+  // get/apply
+  val elm: USTM[Int] =
+    for
+      arr <- i
+      elm <- arr(1)
+    yield elm
+
+  // set/update
+  val updated: USTM[TArray[Int]] =
+    for
+      arr <- i
+      _   <- arr.update(1, _ * 10)
+    yield arr
+
+  // transform
+  val transformed: USTM[TArray[Int]] =
+    for
+      arr <- i
+      _   <- arr.transform(_ + 1)
+    yield arr
+
+  // fold/foldSTM/foreach
+  // TSet, TMap, TQueue, TStack, TPriorityQueue
+
   override def run: ZIO[Any, Any, Any] =
     runTransactionalBank2
       .debugThread("Should NOT be > 1000, but it is what? -> ")
