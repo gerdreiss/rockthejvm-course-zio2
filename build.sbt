@@ -13,8 +13,8 @@ lazy val root = project
       "dev.zio" %% "zio-nio"        % zio2Version,
       "dev.zio" %% "zio-prelude"    % "1.0.0-RC15",
       "dev.zio" %% "zio-test"       % zio2Version,
-      "dev.zio" %% "zio-test-sbt"   % zio2Version,
-      "dev.zio" %% "zio-test-junit" % zio2Version
+      "dev.zio" %% "zio-test-junit" % zio2Version,
+      "dev.zio" %% "zio-test-sbt"   % zio2Version
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZioFramework")
   )
